@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rq-worker
+  namespace: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rq-worker
+  template:
+    metadata:
+      labels:
+        app: rq-worker
+    spec:
+      containers:
+      - name: rq-worker
+        image: goncammej/vividus_back:0.0.1
+        command: ["/usr/local/bin/entrypoint.sh", "worker"]
+        envFrom:
+            - configMapRef:
+                name: backend-app-config
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-password
+              key: password

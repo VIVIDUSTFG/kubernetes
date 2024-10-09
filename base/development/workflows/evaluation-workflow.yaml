@@ -1,0 +1,75 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: evaluation-workflow
+  namespace: argo
+spec:
+  entrypoint: evaluation-workflow
+  ttlStrategy:
+    secondsAfterCompletion: 3600  # 1 hour
+    secondsAfterSuccess: 600  # 10 minutes
+    secondsAfterFailure: 86400  # 1 day
+  volumes:
+  - name: datasets-storage
+    persistentVolumeClaim:
+      claimName: datasets-pv-claim
+  - name: infer-models-storage
+    persistentVolumeClaim:
+      claimName: infer-models-pv-claim
+  - name: tmp-inference-storage
+    persistentVolumeClaim:
+      claimName: tmp-inference-pv-claim
+  templates:
+  - name: evaluation-workflow
+    inputs:
+      parameters:
+      - name: dataPath
+      - name: model
+      - name: featureType
+      - name: modelPath
+    dag:
+      tasks:
+      - name: setup-permissions
+        template: setup-permissions
+      - name: evaluation
+        template: run-evaluation
+        arguments:
+          parameters:
+          - name: dataPath
+            value: "{{inputs.parameters.dataPath}}"
+          - name: model
+            value: "{{inputs.parameters.model}}"
+          - name: modality
+            value: "{{inputs.parameters.featureType}}"
+          - name: modelPath
+            value: "{{inputs.parameters.modelPath}}"
+        dependencies: [setup-permissions]
+  
+  - name: setup-permissions
+    container:
+      image: busybox
+      command: ["sh", "-c"]
+      args: ["chmod -R 777 /tmp_inference"]
+      volumeMounts:
+      - name: tmp-inference-storage
+        mountPath: /tmp_inference
+    
+  - name: run-evaluation
+    inputs:
+        parameters:
+        - name: dataPath
+        - name: model
+        - name: modality
+        - name: modelPath
+    container:
+      image: goncammej/inference_process:0.0.6
+      imagePullPolicy: IfNotPresent
+      command: ["sh", "-c"]
+      args: ["python main.py --model-name {{inputs.parameters.model}} --modality {{inputs.parameters.modality}} --data-path {{inputs.parameters.dataPath}} --models-path {{inputs.parameters.modelPath}}"]
+      volumeMounts:
+      - name: datasets-storage
+        mountPath: /datasets
+      - name: infer-models-storage
+        mountPath: /infer_models
+      - name: tmp-inference-storage
+        mountPath: /tmp_inference

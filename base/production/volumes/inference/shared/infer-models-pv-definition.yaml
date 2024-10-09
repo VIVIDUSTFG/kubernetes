@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: infer-models-pv
+  labels:
+    type: infer-models
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: /infer_models
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""

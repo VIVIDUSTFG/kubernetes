@@ -1,0 +1,22 @@
+resources:
+  - namespaces.yaml
+  - volumes/inference/shared/infer-models-pv-definition.yaml
+  - volumes/inference/argo/infer-models-pv-claim.yaml
+  - volumes/inference/app/infer-models-pv-claim.yaml
+  - volumes/inference/shared/tmp-inference-pv-definition.yaml
+  - volumes/inference/argo/tmp-inference-pv-claim.yaml
+  - volumes/inference/app/tmp-inference-pv-claim.yaml
+  - volumes/inference/shared/datasets-pv-definition.yaml
+  - volumes/inference/argo/datasets-pv-claim.yaml
+  - volumes/inference/app/datasets-pv-claim.yaml
+  - test/test.yaml
+  - roles/role.yaml
+  - roles/rolebinding.yaml
+  - workflows/inference-workflow.yaml
+  - workflows/evaluation-workflow.yaml
+  - deployments/backend.yaml
+  - deployments/frontend.yaml
+  - deployments/redis.yaml
+  - deployments/rq.yaml
+  - configmap.yaml
+  - ingress.yaml

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: datasets-pv
+  labels:
+    type: datasets
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: /datasets
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""

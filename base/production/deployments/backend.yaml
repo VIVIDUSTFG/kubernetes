@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi-backend
+  namespace: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fastapi-backend
+  template:
+    metadata:
+      labels:
+        app: fastapi-backend
+    spec:
+      containers:
+      - name: fastapi
+        image: goncammej/vividus_back:0.0.1
+        ports:
+        - containerPort: 8080
+        envFrom:
+            - configMapRef:
+                name: backend-app-config
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-password
+              key: password
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secrets
+              key: JWT_SECRET_KEY
+        - name: JWT_REFRESH_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secrets
+              key: JWT_REFRESH_SECRET_KEY
+        - name: FIRST_SUPERUSER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: superuser-password
+              key: password
+        command: ["/usr/local/bin/entrypoint.sh"]
+        volumeMounts:
+        - name: infer-models
+          mountPath: /infer_models
+        - name: tmp-inference
+          mountPath: /tmp_inference
+        - name: datasets
+          mountPath: /datasets
+      volumes:
+      - name: infer-models
+        persistentVolumeClaim:
+          claimName: infer-models-pv-claim
+      - name: tmp-inference
+        persistentVolumeClaim:
+          claimName: tmp-inference-pv-claim
+      - name: datasets
+        persistentVolumeClaim:
+          claimName: datasets-pv-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi-backend-service
+  namespace: app
+spec:
+  selector:
+    app: fastapi-backend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080

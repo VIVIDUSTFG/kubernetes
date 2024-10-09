@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-app-config
+  namespace: app
+data:
+  PUBLIC_API_URL: "http://fastapi-backend-service:80/api"
+  SITE: "http://vividus-test.duckdns.org"
+  PROD_URL: "http://vividus-test.duckdns.org"
+  STAGING: "false"
+ 
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-app-config
+  namespace: app
+data:
+  STAGING: "false"
+  PROJECT_NAME: "VIVIDUS API"
+  PROJECT_VERSION: "0.0.1"
+  API_STR: "/api/"
+  FIRST_SUPERUSER_USERNAME: "root"
+  FIRST_SUPERUSER_EMAIL: "root@root.com"
+  SERVER_HOST: "0.0.0.0"
+  SERVER_PORT: "8080"
+  BACKEND_CORS_ORIGINS: '["http://astro-frontend-service:80", "http://vividus.duckdns.org"]'
+
+  PSQL_DATABASE_URL: "postgresql+asyncpg://avnadmin:AVNS_PaAECNr9wqlkraOQDzH@pg-1cf2a829-vividus16-da8e.h.aivencloud.com:18373/defaultdb"
+
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  

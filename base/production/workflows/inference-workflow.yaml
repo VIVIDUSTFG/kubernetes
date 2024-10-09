@@ -1,0 +1,119 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: inference-workflow
+  namespace: argo
+spec:
+  entrypoint: inference-workflow
+  ttlStrategy:
+    secondsAfterCompletion: 3600  # 1 hour
+    secondsAfterSuccess: 600  # 10 minutes
+    secondsAfterFailure: 86400  # 1 day
+  volumes:
+  - name: infer-models-storage
+    persistentVolumeClaim:
+      claimName: infer-models-pv-claim
+  - name: tmp-inference-storage
+    persistentVolumeClaim:
+      claimName: tmp-inference-pv-claim
+  templates:
+  - name: inference-workflow
+    inputs:
+      parameters:
+      - name: featureType
+      - name: videoPath
+      - name: dataPath
+      - name: model
+      - name: modelPath
+    dag:
+      tasks:
+      - name: setup-permissions
+        template: setup-permissions
+      - name: extract-rgb
+        template: extract-rgb
+        arguments:
+          parameters:
+          - name: videoPath
+            value: "{{inputs.parameters.videoPath}}"
+          - name: dataPath
+            value: "{{inputs.parameters.dataPath}}"
+        dependencies: [setup-permissions]
+        when: "{{inputs.parameters.featureType}} == rgb_only || {{inputs.parameters.featureType}} == rgb_and_audio"
+      - name: extract-audio
+        template: extract-audio
+        arguments:
+          parameters:
+          - name: videoPath
+            value: "{{inputs.parameters.videoPath}}"
+          - name: dataPath
+            value: "{{inputs.parameters.dataPath}}"
+        dependencies: [setup-permissions]
+        when: "{{inputs.parameters.featureType}} == rgb_and_audio"
+      - name: inference
+        template: run-inference
+        arguments:
+          parameters:
+          - name: dataPath
+            value: "{{inputs.parameters.dataPath}}"
+          - name: model
+            value: "{{inputs.parameters.model}}"
+          - name: modality
+            value: "{{inputs.parameters.featureType}}"
+          - name: modelPath
+            value: "{{inputs.parameters.modelPath}}"
+        dependencies: [extract-audio, extract-rgb]
+  
+  - name: setup-permissions
+    container:
+      image: busybox
+      command: ["sh", "-c"]
+      args: ["chmod -R 777 /tmp_inference"]
+      volumeMounts:
+      - name: tmp-inference-storage
+        mountPath: /tmp_inference
+
+  - name: extract-rgb
+    inputs:
+        parameters:
+        - name: videoPath
+        - name: dataPath
+    container:
+      image: goncammej/features_process:0.0.1
+      imagePullPolicy: IfNotPresent
+      command: ["sh", "-c"]
+      args: ["python main.py feature_type=i3d flow_type=raft video_paths='[{{inputs.parameters.videoPath}}]' on_extraction=save_numpy output_path='{{inputs.parameters.dataPath}}' stack_size=24 step_size=24 streams=rgb"]
+      volumeMounts:
+      - name: tmp-inference-storage
+        mountPath: /tmp_inference
+
+  - name: extract-audio
+    inputs:
+        parameters:
+        - name: videoPath
+        - name: dataPath
+    container:
+      image: goncammej/features_process:0.0.1
+      imagePullPolicy: IfNotPresent
+      command: ["sh", "-c"]
+      args: ["python main.py feature_type=vggish video_paths='[{{inputs.parameters.videoPath}}]' on_extraction=save_numpy output_path='{{inputs.parameters.dataPath}}'"]
+      volumeMounts:
+      - name: tmp-inference-storage
+        mountPath: /tmp_inference
+    
+  - name: run-inference
+    inputs:
+        parameters:
+        - name: dataPath
+        - name: model
+        - name: modality
+        - name: modelPath
+    container:
+      image: goncammej/inference_process:0.0.6
+      imagePullPolicy: IfNotPresent
+      command: ["sh", "-c"]
+      args: ["python main.py --model-name {{inputs.parameters.model}} --modality {{inputs.parameters.modality}} --data-path {{inputs.parameters.dataPath}} --models-path {{inputs.parameters.modelPath}}"]
+      volumeMounts:
+      - name: infer-models-storage
+        mountPath: /infer_models
+      - name: tmp-inference-storage
+        mountPath: /tmp_inference
