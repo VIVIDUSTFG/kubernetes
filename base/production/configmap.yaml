@@ -26,7 +26,7 @@ data:
   SERVER_PORT: "8080"
   BACKEND_CORS_ORIGINS: '["http://astro-frontend-service:80", "http://vividus.duckdns.org"]'
 
-  PSQL_DATABASE_URL: "postgresql+asyncpg://avnadmin:AVNS_PaAECNr9wqlkraOQDzH@pg-1cf2a829-vividus16-da8e.h.aivencloud.com:18373/defaultdb"
+  PSQL_DATABASE_URL: "url base de datos remota"
 
   REDIS_HOST: "redis"
   REDIS_PORT: "6379"
